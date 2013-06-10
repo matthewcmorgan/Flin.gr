@@ -5,9 +5,11 @@
 
 var express = require('express')
   , routes = require('./routes')
-  , user = require('./routes/user')
   , http = require('http')
-  , path = require('path');
+  , path = require('path')
+  , redis = require("redis")
+  , redis-client = redis.createClient();
+
 
 var app = express();
 
@@ -20,7 +22,16 @@ app.use(express.logger('dev'));
 app.use(express.bodyParser());
 app.use(express.methodOverride());
 app.use(app.router);
-app.use(require('stylus').middleware(__dirname + '/public'));
+app.use(require('stylus').middleware(
+  { "src" : __dirname + '/public',
+  , "compile" : function(str, path) {
+      return stylus(str)
+        .set('filename', path)
+//       .set('compress', true)
+        .use(nib());
+    }
+  }
+));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // development only
@@ -29,7 +40,6 @@ if ('development' == app.get('env')) {
 }
 
 app.get('/', routes.index);
-app.get('/users', user.list);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
